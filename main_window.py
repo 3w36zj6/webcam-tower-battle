@@ -1,12 +1,43 @@
 import arcade
 import pymunk
+import cv2
 import random
 import timeit
 import math
+from PIL import Image
 
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 800
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
 SCREEN_TITLE = "Pymunk Pegboard Example"
+
+
+class Camera():
+    def __init__(self):
+        self.capture = cv2.VideoCapture(0)
+
+    def update(self):
+        self.sprite = arcade.Sprite()
+        self.sprite.position = (1050, 360)
+        ret, frame_cv = self.capture.read()
+        frame_cv = cv2.resize(frame_cv, (320, 180))
+        frame_pil = cv2pil(frame_cv)
+        self.sprite.texture = arcade.Texture(name="", image=frame_pil)
+
+    def draw(self):
+        self.sprite.draw()
+
+
+def cv2pil(image):
+    # OpenCV型 -> PIL型
+    new_image = image.copy()
+    if new_image.ndim == 2:  # モノクロ
+        pass
+    elif new_image.shape[2] == 3:  # カラー
+        new_image = cv2.cvtColor(new_image, cv2.COLOR_BGR2RGB)
+    elif new_image.shape[2] == 4:  # 透過
+        new_image = cv2.cvtColor(new_image, cv2.COLOR_BGRA2RGBA)
+    new_image = Image.fromarray(new_image)
+    return new_image
 
 
 class CircleSprite(arcade.Sprite):
@@ -29,8 +60,12 @@ class MyGame(arcade.Window):
         arcade.set_background_color(arcade.color.DARK_SLATE_GRAY)
 
         self.draw_time = 0
-        self.processing_time = 0
+        self.delta_time = 0
         self.time = 0
+
+        # -- Camera
+        self.camera = Camera()
+        self.camera.update()
 
         # -- Pymunk
         self.space = pymunk.Space()
@@ -95,7 +130,7 @@ class MyGame(arcade.Window):
             arcade.draw_line(pv1.x, pv1.y, pv2.x, pv2.y, arcade.color.WHITE, 2)
 
         # Display timings
-        output = f"Processing time: {self.processing_time:.3f}"
+        output = f"FPS: {1//self.delta_time}"
         arcade.draw_text(output, 20, SCREEN_HEIGHT -
                          20, arcade.color.WHITE, 12)
 
@@ -107,6 +142,8 @@ class MyGame(arcade.Window):
         for ball in self.ball_list:
             ball.draw_hit_box(arcade.color.RED, 3)
 
+        # Camera
+        self.camera.draw()
 
         self.draw_time = timeit.default_timer() - draw_start_time
 
@@ -150,7 +187,11 @@ class MyGame(arcade.Window):
             ball.center_y = ball.pymunk_shape.body.position.y
             ball.angle = math.degrees(ball.pymunk_shape.body.angle)
 
+        # Camera
+        self.camera.update()
+
         self.time = timeit.default_timer() - start_time
+        self.delta_time = delta_time
 
 
 def main():
