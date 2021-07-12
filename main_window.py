@@ -5,10 +5,11 @@ import random
 import timeit
 import math
 from PIL import Image
+import numpy as np
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
-SCREEN_TITLE = "Pymunk Pegboard Example"
+SCREEN_TITLE = ""
 
 
 class Camera():
@@ -18,10 +19,34 @@ class Camera():
     def update(self):
         self.sprite = arcade.Sprite()
         self.sprite.position = (1050, 360)
-        ret, frame_cv = self.capture.read()
-        frame_cv = cv2.resize(frame_cv, (320, 180))
-        frame_pil = cv2pil(frame_cv)
-        self.sprite.texture = arcade.Texture(name="", image=frame_pil)
+        ret, frame_image_cv = self.capture.read()
+        frame_image_cv = cv2.resize(frame_image_cv, (320, 180))
+        frame_image_cv = cv2.cvtColor(frame_image_cv, cv2.COLOR_RGB2RGBA)
+
+        # HSV変換
+        hsv = cv2.cvtColor(frame_image_cv, cv2.COLOR_BGR2HSV)
+        # 2値化
+        bin_img = ~cv2.inRange(hsv, (62, 100, 0), (79, 255, 255))
+        # 輪郭抽出
+        contours = cv2.findContours(
+            bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[1]
+        # 面積が最大の輪郭を取得
+        contour = max(contours, key=lambda x: cv2.contourArea(x))
+        # マスク画像作成
+        mask = np.zeros_like(bin_img)
+        cv2.drawContours(mask, [contour], -1, color=255, thickness=-1)
+        # 幅、高さは前景画像と背景画像の共通部分をとる
+        w = frame_image_cv.shape[1]
+        h = frame_image_cv.shape[0]
+        # 合成する領域
+        fg_roi = frame_image_cv[:h, :w]
+        bg_roi = np.zeros((h, w, 4), np.uint8)
+        # 合成
+        frame_image_cv = np.where(
+            mask[:h, :w, np.newaxis] == 0, bg_roi, fg_roi)
+
+        frame_img_pil = cv2pil(frame_image_cv)
+        self.sprite.texture = arcade.Texture(name="", image=frame_img_pil)
 
     def draw(self):
         self.sprite.draw()
@@ -54,6 +79,7 @@ class MyGame(arcade.Window):
 
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
+        self.set_update_rate(1/1000)
 
         self.peg_list = arcade.SpriteList()
         self.ball_list: arcade.SpriteList[CircleSprite] = arcade.SpriteList()
@@ -129,6 +155,7 @@ class MyGame(arcade.Window):
             pv2 = body.position + line.b.rotated(body.angle)
             arcade.draw_line(pv1.x, pv1.y, pv2.x, pv2.y, arcade.color.WHITE, 2)
 
+        """
         # Display timings
         output = f"FPS: {1//self.delta_time}"
         arcade.draw_text(output, 20, SCREEN_HEIGHT -
@@ -137,6 +164,7 @@ class MyGame(arcade.Window):
         output = f"Drawing time: {self.draw_time:.3f}"
         arcade.draw_text(output, 20, SCREEN_HEIGHT -
                          40, arcade.color.WHITE, 12)
+        """
 
         # Draw hit box
         for ball in self.ball_list:
