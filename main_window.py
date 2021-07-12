@@ -240,12 +240,10 @@ class MyGame(arcade.Window):
         x = random.randint(0, SCREEN_WIDTH)
         y = SCREEN_HEIGHT
         body.position = x, y
-        shape = pymunk.Circle(body, radius, pymunk.Vec2d(0, 0))
+        shape = pymunk.Poly(body, sprite.texture.hit_box_points)
         shape.friction = 0.3
         self.space.add(body, shape)
-
         sprite.pymunk_shape = shape
-
         self.ball_list.append(sprite)
 
 
