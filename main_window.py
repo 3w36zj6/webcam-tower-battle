@@ -15,6 +15,7 @@ SCREEN_TITLE = ""
 class Camera():
     def __init__(self):
         self.capture = cv2.VideoCapture(0)
+        self.count = 0
 
     def update(self):
         self.sprite = arcade.Sprite()
@@ -46,10 +47,16 @@ class Camera():
             mask[:h, :w, np.newaxis] == 0, bg_roi, fg_roi)
 
         frame_img_pil = cv2pil(frame_image_cv)
-        self.sprite.texture = arcade.Texture(name="", image=frame_img_pil)
+        self.sprite.texture = arcade.Texture(
+            name=f"{self.count}", image=frame_img_pil, hit_box_algorithm="Detailed")
 
     def draw(self):
         self.sprite.draw()
+
+    def get_sprite(self):
+        # print(self.sprite.texture.hit_box_points)
+        self.count += 1
+        return self.sprite
 
 
 def cv2pil(image):
@@ -104,20 +111,20 @@ class MyGame(arcade.Window):
         body = pymunk.Body(body_type=pymunk.Body.STATIC)
         shape = pymunk.Segment(body, [0, 10], [SCREEN_WIDTH, 10], 0.0)
         shape.friction = 10
-        self.space.add(shape)
+        self.space.add(body, shape)
         self.static_lines.append(shape)
 
         body = pymunk.Body(body_type=pymunk.Body.STATIC)
         shape = pymunk.Segment(
             body, [SCREEN_WIDTH - 50, 10], [SCREEN_WIDTH, 30], 0.0)
         shape.friction = 10
-        self.space.add(shape)
+        self.space.add(body, shape)
         self.static_lines.append(shape)
 
         body = pymunk.Body(body_type=pymunk.Body.STATIC)
         shape = pymunk.Segment(body, [50, 10], [0, 30], 0.0)
         shape.friction = 10
-        self.space.add(shape)
+        self.space.add(body, shape)
         self.static_lines.append(shape)
 
         radius = 20
@@ -220,6 +227,26 @@ class MyGame(arcade.Window):
 
         self.time = timeit.default_timer() - start_time
         self.delta_time = delta_time
+
+    def on_key_press(self, key, modifiers):
+        if key == arcade.key.P:
+            self.generate_sprite(self.camera.get_sprite())
+
+    def generate_sprite(self, sprite):
+        mass = 0.5
+        radius = 15
+        inertia = pymunk.moment_for_circle(mass, 0, radius, (0, 0))
+        body = pymunk.Body(mass, inertia)
+        x = random.randint(0, SCREEN_WIDTH)
+        y = SCREEN_HEIGHT
+        body.position = x, y
+        shape = pymunk.Circle(body, radius, pymunk.Vec2d(0, 0))
+        shape.friction = 0.3
+        self.space.add(body, shape)
+
+        sprite.pymunk_shape = shape
+
+        self.ball_list.append(sprite)
 
 
 def main():
