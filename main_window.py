@@ -6,15 +6,15 @@ import timeit
 import math
 from PIL import Image
 import numpy as np
+import sys
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
-SCREEN_TITLE = ""
 
 
-class Camera():
-    def __init__(self):
-        self.capture = cv2.VideoCapture(0)
+class Camera:
+    def __init__(self, camera_id):
+        self.capture = cv2.VideoCapture(camera_id)
         self.count = 0
 
     def update(self):
@@ -30,7 +30,8 @@ class Camera():
         bin_img = ~cv2.inRange(hsv, (62, 100, 0), (79, 255, 255))
         # 輪郭抽出
         contours = cv2.findContours(
-            bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[1]
+            bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )[1]
         # 面積が最大の輪郭を取得
         contour = max(contours, key=lambda x: cv2.contourArea(x))
         # マスク画像作成
@@ -43,12 +44,12 @@ class Camera():
         fg_roi = frame_image_cv[:h, :w]
         bg_roi = np.zeros((h, w, 4), np.uint8)
         # 合成
-        frame_image_cv = np.where(
-            mask[:h, :w, np.newaxis] == 0, bg_roi, fg_roi)
+        frame_image_cv = np.where(mask[:h, :w, np.newaxis] == 0, bg_roi, fg_roi)
 
         frame_img_pil = cv2pil(frame_image_cv)
         self.sprite.texture = arcade.Texture(
-            name=f"{self.count}", image=frame_img_pil, hit_box_algorithm="Detailed")
+            name=f"{self.count}", image=frame_img_pil, hit_box_algorithm="Detailed"
+        )
 
     def draw(self):
         self.sprite.draw()
@@ -74,19 +75,22 @@ def cv2pil(image):
 
 class CircleSprite(arcade.Sprite):
     def __init__(self, filename, pymunk_shape):
-        super().__init__(filename, center_x=pymunk_shape.body.position.x,
-                         center_y=pymunk_shape.body.position.y)
+        super().__init__(
+            filename,
+            center_x=pymunk_shape.body.position.x,
+            center_y=pymunk_shape.body.position.y,
+        )
         self.width = pymunk_shape.radius * 2
         self.height = pymunk_shape.radius * 2
         self.pymunk_shape = pymunk_shape
 
 
 class MyGame(arcade.Window):
-    """ Main application class. """
+    """Main application class."""
 
-    def __init__(self, width, height, title):
-        super().__init__(width, height, title)
-        self.set_update_rate(1/1000)
+    def __init__(self, camera_id):
+        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, "Tower Battle")
+        self.set_update_rate(1 / 1000)
 
         self.peg_list = arcade.SpriteList()
         self.ball_list: arcade.SpriteList[CircleSprite] = arcade.SpriteList()
@@ -97,7 +101,7 @@ class MyGame(arcade.Window):
         self.time = 0
 
         # -- Camera
-        self.camera = Camera()
+        self.camera = Camera(camera_id)
         self.camera.update()
 
         # -- Pymunk
@@ -115,8 +119,7 @@ class MyGame(arcade.Window):
         self.static_lines.append(shape)
 
         body = pymunk.Body(body_type=pymunk.Body.STATIC)
-        shape = pymunk.Segment(
-            body, [SCREEN_WIDTH - 50, 10], [SCREEN_WIDTH, 30], 0.0)
+        shape = pymunk.Segment(body, [SCREEN_WIDTH - 50, 10], [SCREEN_WIDTH, 30], 0.0)
         shape.friction = 10
         self.space.add(body, shape)
         self.static_lines.append(shape)
@@ -139,8 +142,7 @@ class MyGame(arcade.Window):
                 shape.friction = 0.3
                 self.space.add(body, shape)
 
-                sprite = CircleSprite(
-                    ":resources:images/pinball/bumper.png", shape)
+                sprite = CircleSprite(":resources:images/pinball/bumper.png", shape)
                 self.peg_list.append(sprite)
 
     def on_draw(self):
@@ -247,11 +249,7 @@ class MyGame(arcade.Window):
         self.ball_list.append(sprite)
 
 
-def main():
-    MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+if __name__ == "__main__":
+    MyGame(int(sys.argv[1]) if len(sys.argv) >= 2 else 0)
 
     arcade.run()
-
-
-if __name__ == "__main__":
-    main()
