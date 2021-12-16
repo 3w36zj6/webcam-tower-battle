@@ -322,6 +322,8 @@ class MyGame(arcade.Window):
             self.left_pressed = True
         if key == arcade.key.RIGHT:
             self.right_pressed = True
+        if key == arcade.key.F11:
+            self.set_fullscreen(not self.fullscreen)
 
     def on_key_release(self, key, modifiers):
         if key == arcade.key.A:
