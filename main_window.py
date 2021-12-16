@@ -16,7 +16,7 @@ class Camera:
     def __init__(self, camera_id):
         self.capture = cv2.VideoCapture(camera_id)
         self.count = 0
-        self.position = [100, 650]
+        self.position = [SCREEN_WIDTH/2, 650]
         self.angle = 0
 
     def update(self):
