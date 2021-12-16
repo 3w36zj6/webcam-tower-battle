@@ -16,10 +16,13 @@ class Camera:
     def __init__(self, camera_id):
         self.capture = cv2.VideoCapture(camera_id)
         self.count = 0
+        self.position = [100, 650]
+        self.angle = 0
 
     def update(self):
         self.sprite = arcade.Sprite()
-        self.sprite.position = (1050, 360)
+        self.sprite.position = self.position
+        self.sprite.angle = self.angle
         ret, frame_image_cv = self.capture.read()
         frame_image_cv = cv2.resize(frame_image_cv, (320, 180))
         frame_image_cv = cv2.cvtColor(frame_image_cv, cv2.COLOR_RGB2RGBA)
@@ -53,6 +56,12 @@ class Camera:
 
     def draw(self):
         self.sprite.draw()
+
+    def move(self, change_x):
+        self.position[0] += change_x
+
+    def rotate(self, change_angle):
+        self.angle += change_angle
 
     def get_sprite(self):
         # print(self.sprite.texture.hit_box_points)
@@ -100,6 +109,11 @@ class MyGame(arcade.Window):
         self.delta_time = 0
         self.time = 0
 
+        # -- Key
+        self.up_pressed = (
+            self.down_pressed
+        ) = self.left_pressed = self.right_pressed = False
+
         # -- Camera
         self.camera = Camera(camera_id)
         self.camera.update()
@@ -113,7 +127,11 @@ class MyGame(arcade.Window):
         self.ticks_to_next_ball = 10
 
         # -- Terrain
-        self.terrain = arcade.Sprite(filename="terrain.png", center_x=SCREEN_WIDTH/2, center_y=SCREEN_HEIGHT/2)
+        self.terrain = arcade.Sprite(
+            filename="terrain.png",
+            center_x=SCREEN_WIDTH / 2,
+            center_y=SCREEN_HEIGHT / 2,
+        )
         body = pymunk.Body(body_type=pymunk.Body.STATIC)
         body.position = self.terrain.position
         shape = pymunk.Poly(body, self.terrain.texture.hit_box_points)
@@ -200,6 +218,7 @@ class MyGame(arcade.Window):
     def on_update(self, delta_time):
         start_time = timeit.default_timer()
 
+        """
         self.ticks_to_next_ball -= 1
         if self.ticks_to_next_ball <= 0:
             self.ticks_to_next_ball = 20
@@ -216,6 +235,7 @@ class MyGame(arcade.Window):
 
             sprite = CircleSprite(":resources:images/items/gold_1.png", shape)
             self.ball_list.append(sprite)
+        """
 
         # Check for balls that fall off the screen
         for ball in self.ball_list:
@@ -240,21 +260,47 @@ class MyGame(arcade.Window):
         # Camera
         self.camera.update()
 
+        if self.up_pressed:
+            self.camera.rotate(-3)
+        if self.down_pressed:
+            self.camera.rotate(3)
+        if self.left_pressed:
+            self.camera.move(-3)
+        if self.right_pressed:
+            self.camera.move(3)
+
         self.time = timeit.default_timer() - start_time
         self.delta_time = delta_time
 
     def on_key_press(self, key, modifiers):
-        if key == arcade.key.P:
+        if key == arcade.key.SPACE:
             self.generate_sprite(self.camera.get_sprite())
+        if key == arcade.key.UP:
+            self.up_pressed = True
+        if key == arcade.key.DOWN:
+            self.down_pressed = True
+        if key == arcade.key.LEFT:
+            self.left_pressed = True
+        if key == arcade.key.RIGHT:
+            self.right_pressed = True
+
+    def on_key_release(self, key, modifiers):
+        if key == arcade.key.UP:
+            self.up_pressed = False
+        if key == arcade.key.DOWN:
+            self.down_pressed = False
+        if key == arcade.key.LEFT:
+            self.left_pressed = False
+        if key == arcade.key.RIGHT:
+            self.right_pressed = False
 
     def generate_sprite(self, sprite):
         mass = 0.5
         radius = 15
         inertia = pymunk.moment_for_circle(mass, 0, radius, (0, 0))
         body = pymunk.Body(mass, inertia)
-        x = random.randint(0, SCREEN_WIDTH)
-        y = SCREEN_HEIGHT
-        body.position = x, y
+        body.position = sprite.position
+        body.angle = math.radians(sprite.angle)  # *6.28/360
         shape = pymunk.Poly(body, sprite.texture.hit_box_points)
         shape.friction = 0.3
         self.space.add(body, shape)
