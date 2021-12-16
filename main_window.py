@@ -116,11 +116,16 @@ class MyGame(arcade.Window):
         self.delta_time = 0
         self.time = 0
 
+        # 1Pのターン
+        self.player1_turn = True
+
+        # Game Over
+        self.gameover = False
+
         # -- Key
         self.up_pressed = (
             self.down_pressed
         ) = self.left_pressed = self.right_pressed = False
-
 
         # -- Pymunk
         self.space = pymunk.Space()
@@ -141,24 +146,6 @@ class MyGame(arcade.Window):
         shape = pymunk.Poly(body, self.terrain.texture.hit_box_points)
         shape.friction = 1
         self.space.add(body, shape)
-
-        body = pymunk.Body(body_type=pymunk.Body.STATIC)
-        shape = pymunk.Segment(body, [0, 10], [SCREEN_WIDTH, 10], 0.0)
-        shape.friction = 10
-        self.space.add(body, shape)
-        self.static_lines.append(shape)
-
-        body = pymunk.Body(body_type=pymunk.Body.STATIC)
-        shape = pymunk.Segment(body, [SCREEN_WIDTH - 50, 10], [SCREEN_WIDTH, 30], 0.0)
-        shape.friction = 10
-        self.space.add(body, shape)
-        self.static_lines.append(shape)
-
-        body = pymunk.Body(body_type=pymunk.Body.STATIC)
-        shape = pymunk.Segment(body, [50, 10], [0, 30], 0.0)
-        shape.friction = 10
-        self.space.add(body, shape)
-        self.static_lines.append(shape)
 
         """
         radius = 20
@@ -207,6 +194,15 @@ class MyGame(arcade.Window):
                          40, arcade.color.WHITE, 12)
         """
 
+        arcade.draw_text(
+            f"{2-self.player1_turn}P", 40, SCREEN_HEIGHT - 60, arcade.color.WHITE, 40
+        )
+
+        if self.gameover:
+            arcade.draw_text(
+            f"{2-self.player1_turn}P is winner.", 0, 0, arcade.color.WHITE, 40
+        )
+
         # Draw hit box
         for ball in self.ball_list:
             ball.draw_hit_box(arcade.color.RED, 3)
@@ -249,6 +245,8 @@ class MyGame(arcade.Window):
                 # Remove balls from physics list
                 ball.remove_from_sprite_lists()
 
+                self.gameover = True
+
         # Update physics
         # Use a constant time step, don't use delta_time
         # See "Game loop / moving time forward"
@@ -279,8 +277,9 @@ class MyGame(arcade.Window):
     def on_key_press(self, key, modifiers):
         if key == arcade.key.ESCAPE:
             self.setup()
-        if key == arcade.key.SPACE:
+        if key == arcade.key.SPACE and not self.gameover:
             self.generate_sprite(self.camera.get_sprite())
+            self.player1_turn = not self.player1_turn
         if key == arcade.key.UP:
             self.up_pressed = True
         if key == arcade.key.DOWN:
