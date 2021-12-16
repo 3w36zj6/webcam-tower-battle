@@ -36,6 +36,9 @@ class Camera:
             bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )[1]
         # 面積が最大の輪郭を取得
+        if not contours:# 何も写っていない場合
+            self.sprite.texture = None
+            return
         contour = max(contours, key=lambda x: cv2.contourArea(x))
         # マスク画像作成
         mask = np.zeros_like(bin_img)
@@ -55,7 +58,8 @@ class Camera:
         )
 
     def draw(self):
-        self.sprite.draw()
+        if self.sprite.texture:
+            self.sprite.draw()
 
     def move_x(self, change_x):
         self.position[0] += change_x
@@ -340,6 +344,8 @@ class MyGame(arcade.Window):
             self.right_pressed = False
 
     def generate_sprite(self, sprite):
+        if not sprite.texture:
+            return
         mass = 0.5
         radius = 15
         inertia = pymunk.moment_for_circle(mass, 0, radius, (0, 0))
