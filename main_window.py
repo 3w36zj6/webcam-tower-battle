@@ -16,7 +16,7 @@ class Camera:
     def __init__(self, camera_id):
         self.capture = cv2.VideoCapture(camera_id)
         self.count = 0
-        self.position = [SCREEN_WIDTH/2, 650]
+        self.position = [SCREEN_WIDTH / 2, 650]
         self.angle = 0
 
     def update(self):
@@ -57,10 +57,14 @@ class Camera:
     def draw(self):
         self.sprite.draw()
 
-    def move(self, change_x):
+    def move_x(self, change_x):
         self.position[0] += change_x
         self.position[0] = max(self.position[0], 0)
         self.position[0] = min(self.position[0], 1280)
+
+    def move_y(self, change_y):
+        self.position[1] += change_y
+        self.position[1] = max(self.position[1], 650)
 
     def rotate(self, change_angle):
         self.angle += change_angle
@@ -124,10 +128,15 @@ class MyGame(arcade.Window):
         # Game Over
         self.gameover = False
 
+        # Scroll
+        self.view_bottom = 0
+
         # -- Key
-        self.up_pressed = (
-            self.down_pressed
-        ) = self.left_pressed = self.right_pressed = False
+        self.a_pressed = (
+            self.d_pressed
+        ) = (
+            self.up_pressed
+        ) = self.down_pressed = self.left_pressed = self.right_pressed = False
 
         # -- Pymunk
         self.space = pymunk.Space()
@@ -197,13 +206,21 @@ class MyGame(arcade.Window):
         """
 
         arcade.draw_text(
-            f"{2-self.player1_turn}P", 40, SCREEN_HEIGHT - 60, arcade.color.WHITE, 40
+            f"{2-self.player1_turn}P",
+            40,
+            SCREEN_HEIGHT - 60 + self.view_bottom,
+            arcade.color.WHITE,
+            40,
         )
 
         if self.gameover:
             arcade.draw_text(
-            f"{2-self.player1_turn}P is winner.", 0, 0, arcade.color.WHITE, 40
-        )
+                f"{2-self.player1_turn}P is winner.",
+                0,
+                0 + self.view_bottom,
+                arcade.color.WHITE,
+                40,
+            )
 
         # Draw hit box
         """
@@ -266,14 +283,23 @@ class MyGame(arcade.Window):
         # Camera
         self.camera.update()
 
-        if self.up_pressed:
-            self.camera.rotate(-3)
-        if self.down_pressed:
+        if self.a_pressed:
             self.camera.rotate(3)
+        if self.d_pressed:
+            self.camera.rotate(-3)
+        if self.up_pressed:
+            self.camera.move_y(3)
+        if self.down_pressed:
+            self.camera.move_y(-3)
         if self.left_pressed:
-            self.camera.move(-3)
+            self.camera.move_x(-3)
         if self.right_pressed:
-            self.camera.move(3)
+            self.camera.move_x(3)
+
+        self.view_bottom = self.camera.position[1] - 650
+        arcade.set_viewport(
+            0, SCREEN_WIDTH, self.view_bottom, SCREEN_HEIGHT + self.view_bottom
+        )
 
         self.time = timeit.default_timer() - start_time
         self.delta_time = delta_time
@@ -284,6 +310,10 @@ class MyGame(arcade.Window):
         if key == arcade.key.SPACE and not self.gameover:
             self.generate_sprite(self.camera.get_sprite())
             self.player1_turn = not self.player1_turn
+        if key == arcade.key.A:
+            self.a_pressed = True
+        if key == arcade.key.D:
+            self.d_pressed = True
         if key == arcade.key.UP:
             self.up_pressed = True
         if key == arcade.key.DOWN:
@@ -294,6 +324,10 @@ class MyGame(arcade.Window):
             self.right_pressed = True
 
     def on_key_release(self, key, modifiers):
+        if key == arcade.key.A:
+            self.a_pressed = False
+        if key == arcade.key.D:
+            self.d_pressed = False
         if key == arcade.key.UP:
             self.up_pressed = False
         if key == arcade.key.DOWN:
