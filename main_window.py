@@ -101,6 +101,13 @@ class MyGame(arcade.Window):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, "Tower Battle")
         self.set_update_rate(1 / 1000)
 
+        # -- Camera
+        self.camera_id = camera_id
+        self.camera = Camera(self.camera_id)
+        self.camera.update()
+        self.setup()
+
+    def setup(self):
         self.peg_list = arcade.SpriteList()
         self.ball_list: arcade.SpriteList[CircleSprite] = arcade.SpriteList()
         arcade.set_background_color(arcade.color.SKY_BLUE)
@@ -114,9 +121,6 @@ class MyGame(arcade.Window):
             self.down_pressed
         ) = self.left_pressed = self.right_pressed = False
 
-        # -- Camera
-        self.camera = Camera(camera_id)
-        self.camera.update()
 
         # -- Pymunk
         self.space = pymunk.Space()
@@ -273,6 +277,8 @@ class MyGame(arcade.Window):
         self.delta_time = delta_time
 
     def on_key_press(self, key, modifiers):
+        if key == arcade.key.ESCAPE:
+            self.setup()
         if key == arcade.key.SPACE:
             self.generate_sprite(self.camera.get_sprite())
         if key == arcade.key.UP:
