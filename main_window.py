@@ -112,6 +112,14 @@ class MyGame(arcade.Window):
 
         self.ticks_to_next_ball = 10
 
+        # -- Terrain
+        self.terrain = arcade.Sprite(filename="terrain.png", center_x=SCREEN_WIDTH/2, center_y=SCREEN_HEIGHT/2)
+        body = pymunk.Body(body_type=pymunk.Body.STATIC)
+        body.position = self.terrain.position
+        shape = pymunk.Poly(body, self.terrain.texture.hit_box_points)
+        shape.friction = 1
+        self.space.add(body, shape)
+
         body = pymunk.Body(body_type=pymunk.Body.STATIC)
         shape = pymunk.Segment(body, [0, 10], [SCREEN_WIDTH, 10], 0.0)
         shape.friction = 10
@@ -130,6 +138,7 @@ class MyGame(arcade.Window):
         self.space.add(body, shape)
         self.static_lines.append(shape)
 
+        """
         radius = 20
         separation = 150
         for row in range(6):
@@ -144,6 +153,7 @@ class MyGame(arcade.Window):
 
                 sprite = CircleSprite(":resources:images/pinball/bumper.png", shape)
                 self.peg_list.append(sprite)
+        """
 
     def on_draw(self):
         """
@@ -181,6 +191,9 @@ class MyGame(arcade.Window):
 
         # Camera
         self.camera.draw()
+
+        # Terrain
+        self.terrain.draw()
 
         self.draw_time = timeit.default_timer() - draw_start_time
 
