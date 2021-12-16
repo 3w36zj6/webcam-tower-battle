@@ -206,8 +206,10 @@ class MyGame(arcade.Window):
         )
 
         # Draw hit box
+        """
         for ball in self.ball_list:
             ball.draw_hit_box(arcade.color.RED, 3)
+        """
 
         # Camera
         self.camera.draw()
