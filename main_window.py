@@ -59,6 +59,8 @@ class Camera:
 
     def move(self, change_x):
         self.position[0] += change_x
+        self.position[0] = max(self.position[0], 0)
+        self.position[0] = min(self.position[0], 1280)
 
     def rotate(self, change_angle):
         self.angle += change_angle
