@@ -160,6 +160,7 @@ class MyGame(arcade.Window):
         body.position = self.terrain.position
         shape = pymunk.Poly(body, self.terrain.texture.hit_box_points)
         shape.friction = 1
+        shape.elasticity = 0
         self.space.add(body, shape)
 
         """
@@ -347,13 +348,13 @@ class MyGame(arcade.Window):
         if not sprite.texture:
             return
         mass = 0.5
-        radius = 15
-        inertia = pymunk.moment_for_circle(mass, 0, radius, (0, 0))
+        inertia = pymunk.moment_for_poly(mass, sprite.texture.hit_box_points)
         body = pymunk.Body(mass, inertia)
         body.position = sprite.position
         body.angle = math.radians(sprite.angle)  # *6.28/360
         shape = pymunk.Poly(body, sprite.texture.hit_box_points)
-        shape.friction = 0.3
+        shape.friction = 1
+        shape.elasticity = 0
         self.space.add(body, shape)
         sprite.pymunk_shape = shape
         self.ball_list.append(sprite)
