@@ -122,6 +122,9 @@ class MyGame(arcade.Window):
         # Scroll
         self.view_bottom = 0
 
+        # Draw hit box
+        self.draw_hit_box = False
+
         # Key
         self.a_pressed = (
             self.d_pressed
@@ -185,10 +188,9 @@ class MyGame(arcade.Window):
             )
 
         # Draw hit box
-        """
-        for obj in self.object_list:
-            obj.draw_hit_box(arcade.color.RED, 3)
-        """
+        if self.draw_hit_box:
+            for obj in self.object_list:
+                obj.draw_hit_box(arcade.color.RED, 3)
 
         # Camera
         self.camera.draw()
@@ -261,6 +263,8 @@ class MyGame(arcade.Window):
             self.left_pressed = True
         if key == arcade.key.RIGHT:
             self.right_pressed = True
+        if key == arcade.key.F1:
+            self.draw_hit_box = not self.draw_hit_box
         if key == arcade.key.F11:
             self.set_fullscreen(not self.fullscreen)
 
