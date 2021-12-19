@@ -131,7 +131,7 @@ class MyGame(arcade.Window):
 
         # Pymunk
         self.space = pymunk.Space()
-        self.space.gravity = (0.0, -900.0)
+        self.space.gravity = (0.0, -400.0)
 
         # Terrain
         self.terrain = arcade.Sprite(
