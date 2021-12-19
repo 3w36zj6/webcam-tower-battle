@@ -36,7 +36,7 @@ class Camera:
             bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )[1]
         # 面積が最大の輪郭を取得
-        if not contours:# 何も写っていない場合
+        if not contours:  # 何も写っていない場合
             self.sprite.texture = None
             return
         contour = max(contours, key=lambda x: cv2.contourArea(x))
@@ -74,7 +74,6 @@ class Camera:
         self.angle += change_angle
 
     def get_sprite(self):
-        # print(self.sprite.texture.hit_box_points)
         self.count += 1
         return self.sprite
 
@@ -92,18 +91,6 @@ def cv2pil(image):
     return new_image
 
 
-class CircleSprite(arcade.Sprite):
-    def __init__(self, filename, pymunk_shape):
-        super().__init__(
-            filename,
-            center_x=pymunk_shape.body.position.x,
-            center_y=pymunk_shape.body.position.y,
-        )
-        self.width = pymunk_shape.radius * 2
-        self.height = pymunk_shape.radius * 2
-        self.pymunk_shape = pymunk_shape
-
-
 class MyGame(arcade.Window):
     """Main application class."""
 
@@ -111,15 +98,15 @@ class MyGame(arcade.Window):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, "Tower Battle")
         self.set_update_rate(1 / 1000)
 
-        # -- Camera
+        # Camera
         self.camera_id = camera_id
         self.camera = Camera(self.camera_id)
         self.camera.update()
         self.setup()
 
     def setup(self):
-        self.peg_list = arcade.SpriteList()
-        self.ball_list: arcade.SpriteList[CircleSprite] = arcade.SpriteList()
+        self.object_list = arcade.SpriteList()
+
         arcade.set_background_color(arcade.color.SKY_BLUE)
 
         self.draw_time = 0
@@ -135,22 +122,18 @@ class MyGame(arcade.Window):
         # Scroll
         self.view_bottom = 0
 
-        # -- Key
+        # Key
         self.a_pressed = (
             self.d_pressed
         ) = (
             self.up_pressed
         ) = self.down_pressed = self.left_pressed = self.right_pressed = False
 
-        # -- Pymunk
+        # Pymunk
         self.space = pymunk.Space()
         self.space.gravity = (0.0, -900.0)
 
-        self.static_lines = []
-
-        self.ticks_to_next_ball = 10
-
-        # -- Terrain
+        # Terrain
         self.terrain = arcade.Sprite(
             filename="terrain.png",
             center_x=SCREEN_WIDTH / 2,
@@ -163,41 +146,15 @@ class MyGame(arcade.Window):
         shape.elasticity = 0
         self.space.add(body, shape)
 
-        """
-        radius = 20
-        separation = 150
-        for row in range(6):
-            for column in range(6):
-                x = column * separation + (separation // 2 * (row % 2))
-                y = row * separation + separation // 2
-                body = pymunk.Body(body_type=pymunk.Body.STATIC)
-                body.position = x, y
-                shape = pymunk.Circle(body, radius, pymunk.Vec2d(0, 0))
-                shape.friction = 0.3
-                self.space.add(body, shape)
-
-                sprite = CircleSprite(":resources:images/pinball/bumper.png", shape)
-                self.peg_list.append(sprite)
-        """
-
     def on_draw(self):
-        """
-        Render the screen.
-        """
+        # Render the screen.
 
         # This command has to happen before we start drawing
         arcade.start_render()
 
         draw_start_time = timeit.default_timer()
-        self.peg_list.draw()
-        self.ball_list.draw()
 
-        for line in self.static_lines:
-            body = line.body
-
-            pv1 = body.position + line.a.rotated(body.angle)
-            pv2 = body.position + line.b.rotated(body.angle)
-            arcade.draw_line(pv1.x, pv1.y, pv2.x, pv2.y, arcade.color.WHITE, 2)
+        self.object_list.draw()
 
         """
         # Display timings
@@ -229,8 +186,8 @@ class MyGame(arcade.Window):
 
         # Draw hit box
         """
-        for ball in self.ball_list:
-            ball.draw_hit_box(arcade.color.RED, 3)
+        for obj in self.object_list:
+            obj.draw_hit_box(arcade.color.RED, 3)
         """
 
         # Camera
@@ -244,46 +201,23 @@ class MyGame(arcade.Window):
     def on_update(self, delta_time):
         start_time = timeit.default_timer()
 
-        """
-        self.ticks_to_next_ball -= 1
-        if self.ticks_to_next_ball <= 0:
-            self.ticks_to_next_ball = 20
-            mass = 0.5
-            radius = 15
-            inertia = pymunk.moment_for_circle(mass, 0, radius, (0, 0))
-            body = pymunk.Body(mass, inertia)
-            x = random.randint(0, SCREEN_WIDTH)
-            y = SCREEN_HEIGHT
-            body.position = x, y
-            shape = pymunk.Circle(body, radius, pymunk.Vec2d(0, 0))
-            shape.friction = 0.3
-            self.space.add(body, shape)
-
-            sprite = CircleSprite(":resources:images/items/gold_1.png", shape)
-            self.ball_list.append(sprite)
-        """
-
         # Check for balls that fall off the screen
-        for ball in self.ball_list:
-            if ball.pymunk_shape.body.position.y < 0:
+        for obj in self.object_list:
+            if obj.pymunk_shape.body.position.y < 0:
                 # Remove balls from physics space
-                self.space.remove(ball.pymunk_shape, ball.pymunk_shape.body)
+                self.space.remove(obj.pymunk_shape, obj.pymunk_shape.body)
                 # Remove balls from physics list
-                ball.remove_from_sprite_lists()
+                obj.remove_from_sprite_lists()
 
                 self.gameover = True
 
-        # Update physics
-        # Use a constant time step, don't use delta_time
-        # See "Game loop / moving time forward"
-        # http://www.pymunk.org/en/latest/overview.html#game-loop-moving-time-forward
         self.space.step(1 / 60.0)
 
         # Move sprites to where physics objects are
-        for ball in self.ball_list:
-            ball.center_x = ball.pymunk_shape.body.position.x
-            ball.center_y = ball.pymunk_shape.body.position.y
-            ball.angle = math.degrees(ball.pymunk_shape.body.angle)
+        for obj in self.object_list:
+            obj.center_x = obj.pymunk_shape.body.position.x
+            obj.center_y = obj.pymunk_shape.body.position.y
+            obj.angle = math.degrees(obj.pymunk_shape.body.angle)
 
         # Camera
         self.camera.update()
@@ -351,13 +285,13 @@ class MyGame(arcade.Window):
         inertia = pymunk.moment_for_poly(mass, sprite.texture.hit_box_points)
         body = pymunk.Body(mass, inertia)
         body.position = sprite.position
-        body.angle = math.radians(sprite.angle)  # *6.28/360
+        body.angle = math.radians(sprite.angle)
         shape = pymunk.Poly(body, sprite.texture.hit_box_points)
         shape.friction = 1
         shape.elasticity = 0
         self.space.add(body, shape)
         sprite.pymunk_shape = shape
-        self.ball_list.append(sprite)
+        self.object_list.append(sprite)
 
 
 if __name__ == "__main__":
