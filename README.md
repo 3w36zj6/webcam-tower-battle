@@ -14,7 +14,7 @@ It is recommended that you use [this plugin](https://obsproject.com/forum/resour
 python main_window.py <camera_id>
 ```
 
-|key|description|
+|Key|Description|
 |:-:|:-:|
 |UP|Move up.|
 |DOWN|Move down.|
